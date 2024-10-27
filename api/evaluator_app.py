@@ -2,6 +2,9 @@
 This is an API to support the LLM QA chain auto-evaluator. 
 """
 
+import uvicorn
+from fastapi import FastAPI
+
 import io
 import os
 from dotenv import load_dotenv
@@ -36,6 +39,12 @@ from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.chains.question_answering import load_qa_chain
 from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter
 from text_utils import GRADE_DOCS_PROMPT, GRADE_ANSWER_PROMPT, GRADE_DOCS_PROMPT_FAST, GRADE_ANSWER_PROMPT_FAST, GRADE_ANSWER_PROMPT_BIAS_CHECK, GRADE_ANSWER_PROMPT_OPENAI, QA_CHAIN_PROMPT, QA_CHAIN_PROMPT_LLAMA
+import os
+import httpx
+from langchain_huggingface import HuggingFaceEmbeddings
+
+MODEL_NAME = os.getenv("MODEL_NAME", "Meta-Llama-3.1-8B-Instruct-Q8_0.gguf")
+INFERENCE_SERVER_URL = os.getenv("INFERENCE_SERVER_URL", "http://localhost:8080/v1")
 
 def generate_eval(text, chunk, logger):
     """
@@ -52,7 +61,18 @@ def generate_eval(text, chunk, logger):
     starting_index = random.randint(0, num_of_chars-chunk)
     sub_sequence = text[starting_index:starting_index+chunk]
     # Set up QAGenerationChain chain using GPT 3.5 as default
-    chain = QAGenerationChain.from_llm(ChatOpenAI(temperature=0))
+
+    llm = ChatOpenAI(
+        openai_api_key="EMPTY",
+        openai_api_base=INFERENCE_SERVER_URL,
+        model_name=MODEL_NAME,
+#        http_async_client=httpx.AsyncClient(verify=False),
+#        http_client=httpx.AsyncClient(verify=False),
+        streaming=True,
+        temperature=0,
+    )
+    chain = QAGenerationChain.from_llm(llm)
+
     eval_set = []
     # Catch any QA generation errors and re-try until QA pair is generated
     awaiting_answer = True
@@ -99,17 +119,26 @@ def make_llm(model):
     @return: LLM
     """
 
-    if model in ("gpt-3.5-turbo", "gpt-4"):
-        llm = ChatOpenAI(model_name=model, temperature=0)
-    elif model == "anthropic":
-        llm = Anthropic(temperature=0)
-    elif model == "Anthropic-100k":
-        llm = Anthropic(model="claude-v1-100k",temperature=0)
-    elif model == "vicuna-13b":
-        llm = Replicate(model="replicate/vicuna-13b:e6d469c2b11008bb0e446c3e9629232f9674581224536851272c54871f84076e",
-                input={"temperature": 0.75, "max_length": 3000, "top_p":0.25})
-    elif model == "mosaic":
-        llm = MosaicML(inject_instruction_format=True,model_kwargs={'do_sample': False, 'max_length': 3000})
+    llm = ChatOpenAI(
+        openai_api_key="EMPTY",
+        openai_api_base=INFERENCE_SERVER_URL,
+        model_name=MODEL_NAME,
+        streaming=True,
+#        http_async_client=httpx.AsyncClient(verify=False),
+#        http_client=httpx.Client(verify=False),
+    )
+
+    # if model in ("gpt-3.5-turbo", "gpt-4"):
+    #     llm = ChatOpenAI(model_name=model, temperature=0)
+    # elif model == "anthropic":
+    #     llm = Anthropic(temperature=0)
+    # elif model == "Anthropic-100k":
+    #     llm = Anthropic(model="claude-v1-100k",temperature=0)
+    # elif model == "vicuna-13b":
+    #     llm = Replicate(model="replicate/vicuna-13b:e6d469c2b11008bb0e446c3e9629232f9674581224536851272c54871f84076e",
+    #             input={"temperature": 0.75, "max_length": 3000, "top_p":0.25})
+    # elif model == "mosaic":
+    #     llm = MosaicML(inject_instruction_format=True,model_kwargs={'do_sample': False, 'max_length': 3000})
     return llm
 
 def make_retriever(splits, retriever_type, embeddings, num_neighbors, llm, logger):
@@ -125,15 +154,17 @@ def make_retriever(splits, retriever_type, embeddings, num_neighbors, llm, logge
     """
 
     logger.info("`Making retriever ...`")
-    # Set embeddings
-    if embeddings == "OpenAI":
-        embd = OpenAIEmbeddings()
-    # Note: Still WIP (can't be selected by user yet)
-    elif embeddings == "LlamaCppEmbeddings":
-        embd = LlamaCppEmbeddings(model="replicate/vicuna-13b:e6d469c2b11008bb0e446c3e9629232f9674581224536851272c54871f84076e")
-    # Note: Test
-    elif embeddings == "Mosaic":
-        embd = MosaicMLInstructorEmbeddings(query_instruction="Represent the query for retrieval: ")
+    embd = HuggingFaceEmbeddings()
+
+    # # Set embeddings
+    # if embeddings == "OpenAI":
+    #     embd = OpenAIEmbeddings()
+    # # Note: Still WIP (can't be selected by user yet)
+    # elif embeddings == "LlamaCppEmbeddings":
+    #     embd = LlamaCppEmbeddings(model="replicate/vicuna-13b:e6d469c2b11008bb0e446c3e9629232f9674581224536851272c54871f84076e")
+    # # Note: Test
+    # elif embeddings == "Mosaic":
+    #     embd = MosaicMLInstructorEmbeddings(query_instruction="Represent the query for retrieval: ")
 
     # Select retriever
     if retriever_type == "similarity-search":
@@ -197,8 +228,19 @@ def grade_model_answer(predicted_dataset, predictions, grade_answer_prompt, logg
     else:
         prompt = GRADE_ANSWER_PROMPT
 
-    # Note: GPT-4 grader is advised by OAI 
-    eval_chain = QAEvalChain.from_llm(llm=ChatOpenAI(model_name="gpt-4", temperature=0),
+    llm = ChatOpenAI(
+        openai_api_key="EMPTY",
+        openai_api_base=INFERENCE_SERVER_URL,
+        model_name=MODEL_NAME,
+        streaming=True,
+#        http_async_client=httpx.AsyncClient(verify=False),
+#        http_client=httpx.Client(verify=False),
+    )
+
+    #eval_chain = QAEvalChain.from_llm(llm=ChatOpenAI(model_name="gpt-4", temperature=0),
+    #                                  prompt=prompt)
+
+    eval_chain = QAEvalChain.from_llm(llm,
                                       prompt=prompt)
     graded_outputs = eval_chain.evaluate(predicted_dataset,
                                          predictions,
@@ -222,8 +264,18 @@ def grade_model_retrieval(gt_dataset, predictions, grade_docs_prompt, logger):
     else:
         prompt = GRADE_DOCS_PROMPT
 
+    llm = ChatOpenAI(
+        openai_api_key="EMPTY",
+        openai_api_base=INFERENCE_SERVER_URL,
+        model_name=MODEL_NAME,
+#        http_async_client=httpx.AsyncClient(verify=False),
+#        http_client=httpx.AsyncClient(verify=False),
+        streaming=True,
+        temperature=0,
+    )
+
     # Note: GPT-4 grader is advised by OAI
-    eval_chain = QAEvalChain.from_llm(llm=ChatOpenAI(model_name="gpt-4", temperature=0),
+    eval_chain = QAEvalChain.from_llm(llm,
                                       prompt=prompt)
     graded_outputs = eval_chain.evaluate(gt_dataset,
                                          predictions,
@@ -263,7 +315,10 @@ def run_eval(chain, retriever, eval_qa_pair, grade_prompt, retriever_type, num_n
         predictions.append(
             {"question": eval_qa_pair["question"], "answer": eval_qa_pair["answer"], "result": answer})
     else :
+        print(">>> HERE")
+        print(f"{eval_qa_pair}")
         predictions.append(chain(eval_qa_pair))
+
     gt_dataset.append(eval_qa_pair)
     end_time = time.time()
     elapsed_time = end_time - start_time
@@ -292,12 +347,6 @@ def run_eval(chain, retriever, eval_qa_pair, grade_prompt, retriever_type, num_n
     return graded_answers, graded_retrieval, latency, predictions
 
 load_dotenv()
-
-if os.environ.get("ENVIRONMENT") != "development":
-    sentry_sdk.init(
-    dsn="https://065aa152c4de4e14af9f9e7335c8eae4@o4505106202820608.ingest.sentry.io/4505106207735808",
-    traces_sample_rate=1.0,
-    )
 
 app = FastAPI()
 
@@ -404,15 +453,17 @@ def run_evaluator(
 
         # Assemble output
         d = pd.DataFrame(predictions)
-        d['answerScore'] = [g['text'] for g in graded_answers]
-        d['retrievalScore'] = [g['text'] for g in graded_retrieval]
+        print(d.to_markdown()) 
+
+        d['answerScore'] = [g['results'] for g in graded_answers] # [{'score': 1, 'justification': 'GRADE: Correct\n\nJUSTIFICATION: foo'}]
+        d['retrievalScore'] = [g['results'] for g in graded_retrieval] # [{'score': 1, 'justification': 'GRADE: Correct\n\nJUSTIFICATION: foo'}]
         d['latency'] = latency
 
         # Summary statistics
-        d['answerScore'] = [{'score': 1 if "Incorrect" not in text else 0,
-                             'justification': text} for text in d['answerScore']]
-        d['retrievalScore'] = [{'score': 1 if "Incorrect" not in text else 0,
-                                'justification': text} for text in d['retrievalScore']]
+        d['answerScore'] = [{'score': 1 if "incorrect" not in results.lower() else 0,
+                              'justification': results} for results in d['answerScore']]
+        d['retrievalScore'] = [{'score': 1 if "incorrect" not in results.lower() else 0,
+                                 'justification': results} for results in d['retrievalScore']]
 
         # Convert dataframe to dict
         d_dict = d.to_dict('records')
@@ -440,3 +491,6 @@ async def create_response(
     test_dataset = json.loads(test_dataset)
     return EventSourceResponse(run_evaluator(files, num_eval_questions, chunk_chars,
                                              overlap, split_method, retriever_type, embeddings, model_version, grade_prompt, num_neighbors, test_dataset), headers={"Content-Type": "text/event-stream", "Connection": "keep-alive", "Cache-Control": "no-cache"})
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)

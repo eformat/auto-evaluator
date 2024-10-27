@@ -95,6 +95,7 @@ const Sidebar = ({ form }: { form: Form }) => {
                 <Select
                   {...field}
                   data={[
+                    { label: "Llama 3.1 8B Instruct", value: "llama-3.1-8B-instruct" },
                     { label: "GPT 3.5 Turbo", value: "gpt-3.5-turbo" },
                     { label: "GPT 4", value: "gpt-4" },
                     { label: "Anthropic", value: "anthropic" },
@@ -140,6 +141,10 @@ const Sidebar = ({ form }: { form: Form }) => {
                       label: "OpenAI",
                       value: "OpenAI",
                     },
+                    {
+                        label: "HuggingFace",
+                        value: "HuggingFace",
+                      },
                   ]}
                 />
               )}
