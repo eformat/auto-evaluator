@@ -378,7 +378,8 @@ def run_evaluator(
     model_version,
     grade_prompt,
     num_neighbors,
-    test_dataset
+    test_dataset,
+    json_response
 ):
 
     # Set up logging
@@ -462,7 +463,10 @@ def run_evaluator(
         # Convert dataframe to dict
         d_dict = d.to_dict('records')
         if len(d_dict) == 1:
-            yield json.dumps({"data":  d_dict[0]})
+            if json_response:
+                yield json.dumps(d_dict[0])
+            else:
+                yield json.dumps({"data":  d_dict[0]})
         else:
             logger.warn(
                 "A QA pair was not evaluated correctly. Skipping this pair.")
@@ -484,7 +488,26 @@ async def create_response(
 ):
     test_dataset = json.loads(test_dataset)
     return EventSourceResponse(run_evaluator(files, num_eval_questions, chunk_chars,
-                                             overlap, split_method, retriever_type, embeddings, model_version, grade_prompt, num_neighbors, test_dataset), headers={"Content-Type": "text/event-stream", "Connection": "keep-alive", "Cache-Control": "no-cache"})
+                                             overlap, split_method, retriever_type, embeddings, model_version, grade_prompt, num_neighbors, test_dataset, False), headers={"Content-Type": "text/event-stream", "Connection": "keep-alive", "Cache-Control": "no-cache"})
+
+# for auto testing features
+@app.post("/evaluator-stream-json")
+async def create_response(
+    files: List[UploadFile] = File(...),
+    num_eval_questions: int = Form(5),
+    chunk_chars: int = Form(1000),
+    overlap: int = Form(100),
+    split_method: str = Form("RecursiveTextSplitter"),
+    retriever_type: str = Form("similarity-search"),
+    embeddings: str = Form("OpenAI"),
+    model_version: str = Form("gpt-3.5-turbo"),
+    grade_prompt: str = Form("Fast"),
+    num_neighbors: int = Form(3),
+    test_dataset: str = Form("[]"),
+):
+    test_dataset = json.loads(test_dataset)
+    return run_evaluator(files, num_eval_questions, chunk_chars,
+           overlap, split_method, retriever_type, embeddings, model_version, grade_prompt, num_neighbors, test_dataset, True)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
