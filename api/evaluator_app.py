@@ -354,15 +354,6 @@ load_dotenv()
 
 app = FastAPI()
 
-origins = [
-    "http://localhost:3000",
-    "localhost:3000",
-    "https://evaluator-ui.vercel.app/"
-    "https://evaluator-ui.vercel.app"
-    "evaluator-ui.vercel.app/"
-    "evaluator-ui.vercel.app"
-]
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -370,7 +361,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 @app.get("/")
 async def root():
