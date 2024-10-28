@@ -11,3 +11,10 @@ oc -n openshift new-build \
 oc -n openshift new-build \
   --strategy docker --dockerfile - --name auto-eval-nextjs < Containerfile.nextjs
 ```
+
+Deploy
+
+```bash
+oc new-project auto-eval
+oc apply -k .
+```

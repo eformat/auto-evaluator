@@ -38,7 +38,7 @@ spec:
                     echo "restarting deployment/chatbot low gpu memory ..."
                     oc rollout restart deployment/chatbot
                   else
-                    oc get deployment/chatbot
+                    oc get deployment/api
                     echo "gpu memory ok ..."
                   fi
               resources: {}
