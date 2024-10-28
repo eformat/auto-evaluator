@@ -1,4 +1,4 @@
-from langchain.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain.chains import QAGenerationChain
 import os
 import httpx
@@ -17,5 +17,4 @@ llm = ChatOpenAI(
     temperature=0,
 )
 chain = QAGenerationChain.from_llm(llm)
-
-# Now you can use qa_chain to generate QA pairs
+print(chain.run({'text': "why"}))

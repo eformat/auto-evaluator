@@ -7,6 +7,8 @@ from fastapi import FastAPI
 
 import io
 import os
+import httpx
+
 from dotenv import load_dotenv
 import sentry_sdk
 import json
@@ -25,7 +27,7 @@ from langchain.llms import Replicate
 from langchain.schema import Document
 from langchain.vectorstores import FAISS
 from langchain.chains import RetrievalQA
-from langchain.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain.chains import QAGenerationChain
 from langchain.retrievers import SVMRetriever
 from langchain.evaluation.qa import QAEvalChain
@@ -39,8 +41,6 @@ from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.chains.question_answering import load_qa_chain
 from langchain.text_splitter import RecursiveCharacterTextSplitter, CharacterTextSplitter
 from text_utils import GRADE_DOCS_PROMPT, GRADE_ANSWER_PROMPT, GRADE_DOCS_PROMPT_FAST, GRADE_ANSWER_PROMPT_FAST, GRADE_ANSWER_PROMPT_BIAS_CHECK, GRADE_ANSWER_PROMPT_OPENAI, QA_CHAIN_PROMPT, QA_CHAIN_PROMPT_LLAMA
-import os
-import httpx
 from langchain_huggingface import HuggingFaceEmbeddings
 
 MODEL_NAME = os.getenv("MODEL_NAME", "Meta-Llama-3.1-8B-Instruct-Q8_0.gguf")
@@ -66,9 +66,10 @@ def generate_eval(text, chunk, logger):
         openai_api_key="EMPTY",
         openai_api_base=INFERENCE_SERVER_URL,
         model_name=MODEL_NAME,
-#        http_async_client=httpx.AsyncClient(verify=False),
-#        http_client=httpx.AsyncClient(verify=False),
+        http_async_client=httpx.AsyncClient(verify=False),
+        http_client=httpx.Client(verify=False),
         streaming=True,
+        verbose=True,
         temperature=0,
     )
     chain = QAGenerationChain.from_llm(llm)
@@ -123,9 +124,11 @@ def make_llm(model):
         openai_api_key="EMPTY",
         openai_api_base=INFERENCE_SERVER_URL,
         model_name=MODEL_NAME,
+        http_async_client=httpx.AsyncClient(verify=False),
+        http_client=httpx.Client(verify=False),
         streaming=True,
-#        http_async_client=httpx.AsyncClient(verify=False),
-#        http_client=httpx.Client(verify=False),
+        verbose=True,
+        temperature=0,
     )
 
     # if model in ("gpt-3.5-turbo", "gpt-4"):
@@ -232,11 +235,12 @@ def grade_model_answer(predicted_dataset, predictions, grade_answer_prompt, logg
         openai_api_key="EMPTY",
         openai_api_base=INFERENCE_SERVER_URL,
         model_name=MODEL_NAME,
+        http_async_client=httpx.AsyncClient(verify=False),
+        http_client=httpx.Client(verify=False),
         streaming=True,
-#        http_async_client=httpx.AsyncClient(verify=False),
-#        http_client=httpx.Client(verify=False),
+        verbose=True,
+        temperature=0,
     )
-
     #eval_chain = QAEvalChain.from_llm(llm=ChatOpenAI(model_name="gpt-4", temperature=0),
     #                                  prompt=prompt)
 
@@ -268,9 +272,10 @@ def grade_model_retrieval(gt_dataset, predictions, grade_docs_prompt, logger):
         openai_api_key="EMPTY",
         openai_api_base=INFERENCE_SERVER_URL,
         model_name=MODEL_NAME,
-#        http_async_client=httpx.AsyncClient(verify=False),
-#        http_client=httpx.AsyncClient(verify=False),
+        http_async_client=httpx.AsyncClient(verify=False),
+        http_client=httpx.Client(verify=False),
         streaming=True,
+        verbose=True,
         temperature=0,
     )
 

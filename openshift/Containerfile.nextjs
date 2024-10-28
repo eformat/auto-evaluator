@@ -1,0 +1,8 @@
+FROM registry.redhat.io/ubi9/nodejs-20@sha256:418f11bec5cf224112c0c56577168099c608216bf2f3d7f025f15092ae2402ef
+WORKDIR /opt/app-root/src
+RUN git clone https://github.com/eformat/auto-evaluator
+RUN npm install yarn
+WORKDIR /opt/app-root/src/auto-evaluator/nextjs
+RUN yarn install
+EXPOSE 3000
+ENTRYPOINT yarn dev

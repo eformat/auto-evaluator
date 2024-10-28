@@ -57,3 +57,4 @@ schema.graphql
 
 tsconfig.tsbuildinfo
 .next
+venv.back/
