@@ -10,7 +10,6 @@ import os
 import httpx
 
 from dotenv import load_dotenv
-import sentry_sdk
 import json
 import time
 import pypdf
