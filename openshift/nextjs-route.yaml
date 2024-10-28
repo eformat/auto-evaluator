@@ -1,0 +1,22 @@
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  annotations:
+    openshift.io/host.generated: "true"
+  labels:
+    app: nextjs
+    app.kubernetes.io/component: nextjs
+    app.kubernetes.io/instance: nextjs
+  name: nextjs
+spec:
+  port:
+    targetPort: 3000
+  tls:
+    insecureEdgeTerminationPolicy: Redirect
+    termination: edge
+  to:
+    kind: Service
+    name: nextjs
+    weight: 100
+  wildcardPolicy: None

@@ -1,0 +1,8 @@
+---
+resources:
+  - api-service.yaml
+  - api-deployment.yaml
+  - api-route.yaml
+  - nextjs-service.yaml
+  - nextjs-deployment.yaml
+  - nextjs-route.yaml

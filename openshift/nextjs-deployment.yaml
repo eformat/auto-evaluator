@@ -1,0 +1,61 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    openshift.io/generated-by: OpenShiftNewApp
+  labels:
+    app: nextjs
+    app.kubernetes.io/component: nextjs
+    app.kubernetes.io/instance: nextjs
+  name: nextjs
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      deployment: nextjs
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        openshift.io/generated-by: OpenShiftNewApp
+      creationTimestamp: null
+      labels:
+        deployment: nextjs
+    spec:
+      containers:
+      - env:
+        - name: NEXT_PUBLIC_API_URL
+          value: https://api-auto-eval.apps.sno.sandbox1990.opentlc.com
+        image: image-registry.openshift-image-registry.svc:5000/openshift/auto-eval-nextjs:latest
+        imagePullPolicy: Always
+        name: nextjs
+        ports:
+        - containerPort: 3000
+          protocol: TCP
+        - containerPort: 8080
+          protocol: TCP
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /opt/app-root/src/.cache/yarn
+          name: cache
+        - mountPath: /opt/app-root/src/auto-evaluator/nextjs/.next
+          name: next
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - emptyDir: {}
+        name: cache
+      - emptyDir: {}
+        name: next
