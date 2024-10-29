@@ -1,0 +1,6 @@
+"question","answer",
+"What is a cheap way to run OpenShift in AWS ?","By using spot instances in AWS you can reduce the cost of EC2 by upto 70%. By adjusting the OpenShift networking configuration to remove all the hig availability saves on cost.",
+"How can i choose an AWS instance size ?","You need a minimum of 8 vCPU and 32 GB RAM to run OpenShift single node - so a m6a.2xlarge is a good minimum AMI size.",
+"What other options are avialble when converting Single Node OpenShift to SPOT ?","You can choose a maximum SPOT price. Another option includes converting back to an on-demand instance if you want to.",
+"What is the average cost of running Single Node OpenShift (SNO) on SPOT ?","You can get the monthly cost to under $100 on average.",
+"Where can i find the code to do the conversion to SNO on SPOT on AWS ?","Take a look at eformats github repo - https://github.com/eformat/sno-for-100.git where the code is shared online.",
