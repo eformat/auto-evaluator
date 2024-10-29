@@ -34,9 +34,9 @@ spec:
                 - /bin/bash
                 - '-c'
                 - >-
-                  if [[ $(nvidia-smi --query-gpu=memory.free --format=csv,noheader,nounits) -lt 500 ]]; then
-                    echo "restarting deployment/chatbot low gpu memory ..."
-                    oc rollout restart deployment/chatbot
+                  if [[ $(nvidia-smi --query-gpu=memory.free --format=csv,noheader,nounits) -lt 1000 ]]; then
+                    echo "restarting deployment/api low gpu memory ..."
+                    oc rollout restart deployment/api
                   else
                     oc get deployment/api
                     echo "gpu memory ok ..."
